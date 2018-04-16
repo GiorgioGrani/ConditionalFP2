@@ -64,8 +64,37 @@ public class FButils {
         double ret = 0;
         double val = 0;
         for(int i = 0; i < intvn ; i++){
-             val = Math.abs(x.get(i) - xh.get(i));
-             if(val > ret) ret = val;
+            val = Math.abs(x.get(i) - xh.get(i));
+            if(val > ret) ret = val;
+        }
+        return ret;
+    }
+    public static double L1norm(ArrayList<Double> xh, ArrayList<Double> x, int intvn){
+        double ret = 0;
+        double val = 0;
+        for(int i = 0; i < intvn ; i++){
+            val = Math.abs(x.get(i) - xh.get(i));
+             ret += val;
+        }
+        return ret;
+    }
+    public static double Chebynorm(ArrayList<Double> xh, int intvn){
+        double ret = 0;
+        double val = 0;
+        for(int i = 0; i < intvn ; i++){
+            val = Math.abs(xh.get(i));
+            if(val > ret) ret = val;
+        }
+        return ret;
+    }
+
+
+    public static ArrayList<Double> sum(ArrayList<Double> xh, ArrayList<Double> x, int intvn){
+        ArrayList<Double> ret = new ArrayList<Double>();
+        double val = 0;
+        for(int i = 0; i < intvn ; i++){
+            val = (x.get(i) + xh.get(i));
+            ret.add(val);
         }
         return ret;
     }

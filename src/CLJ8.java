@@ -363,6 +363,7 @@ public class CLJ8  {
                 count++;
                 //System.out.println("Here I am "+ count+" "+val+" "+(Math.abs(val) <= 1e-10)+" "+f(xk));
                 ArrayList<Double> xh = this.getXTilde(xk);
+
                 feas = this.checkFeasibility(xh);
                 if(!feas){
                     //  System.out.println("                                    filling"+FButils.L2Norm(grad));

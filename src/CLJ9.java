@@ -13,8 +13,10 @@ public class CLJ9  {
     private double [] b;
     private double [] lower;
     private double [] upper;
+    private int [] directions;
     private int numberOfIntegerVariables;
     private int n ;
+    private double sign;
     private static final double eps = 1e-6;
 
     private IloCplex cplex;
@@ -25,7 +27,7 @@ public class CLJ9  {
     private ArrayList< IloNumVar> x;
     private ArrayList<ArrayList<Double>> awarex;
 
-    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables) throws IloException{
+    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables, int [] directions) throws IloException{
         if( c != null) this.c = c;
         else return;
         this.n = this.c.length;
@@ -48,8 +50,10 @@ public class CLJ9  {
 
         this.numberOfIntegerVariables = numberOfIntegerVariables;
 
+        this.directions = directions;
         this.cplex = new IloCplex();
         this.model = this.cplex.getModel();
+        this.sign = Math.pow(-1d, this.numberOfIntegerVariables + 1)*Math.pow(2,-this.numberOfIntegerVariables);
 
         this.createVariables();
         this.setObjective();
@@ -91,7 +95,13 @@ public class CLJ9  {
                 expr.addTerm( A[i][j], xi);
                 j++;
             }
-            this.cplex.addGe(expr, b[i]);
+            if(directions[i] > 0) {
+                this.cplex.addGe(expr, b[i]);
+            }else if( directions[i] < 0){
+                this.cplex.addLe(expr, b[i]);
+            }else{
+                this.cplex.addEq(expr, b[i]);
+            }
         }
     }
 
@@ -106,29 +116,10 @@ public class CLJ9  {
         return d;
     }
 
-    private ArrayList<Object> getXTilde() throws IloException{
-        ArrayList<Double> ret = new ArrayList<>();
-        ArrayList<Double> x = new ArrayList<>();
-        boolean stop = true;
-        for(int i = 0; i < this.numberOfIntegerVariables; i++){
-            IloNumVar xi = this.x.get(i);
-            Double d = this.cplex.getValue(xi);
-            Double rd = FButils.round(d);
-            ret.add(rd);
-            x.add(d);
-            if(Math.abs(rd - d) >= this.eps){
-                stop = false;
-            }
-        }
-        ArrayList<Object> res = new ArrayList<>();
-        res.add(ret);
-        res.add(stop);
-        res.add(x);
-        return res;
-    }
+
     private ArrayList<Double> getX() throws IloException{
         ArrayList<Double> x = new ArrayList<>();
-        for(int i = 0; i < this.numberOfIntegerVariables; i++){
+        for(int i = 0; i < this.n; i++){
             Double d = this.cplex.getValue(this.x.get(i));
             x.add(d);
         }
@@ -142,10 +133,11 @@ public class CLJ9  {
             if(Math.abs(d)>maxabs) maxabs = Math.abs(d);
         }
         ArrayList<Double> grad = new ArrayList<>();
+        //System.out.println(".|.|.|    "+maxabs);
         if(maxabs < 1 && maxabs > 0){
             for(Double d : grad0){
                 grad.add(d/maxabs);
-                // System.out.println("mod grad"+(d/maxabs));
+                //System.out.println("mod grad"+(d/maxabs));
             }
         }else{
             grad = grad0;
@@ -168,7 +160,14 @@ public class CLJ9  {
                 double xi = x.get(j);
                 val += xi*A[i][j];
             }
-            if (val < b[i] - eps) return false;
+
+            if(directions[i] > 0) {
+                if (val < b[i] - eps) return false;
+            }else if( directions[i] < 0){
+                if (val > b[i] + eps) return false;
+            }else{
+                if (val < b[i] - eps  || val > b[i] + eps  ) return false;
+            }
         }
         return true;
     }
@@ -189,7 +188,6 @@ public class CLJ9  {
         ArrayList<Double> dk = new ArrayList<>();
         int i = 0;
         for(Double xi : x){
-            if(i >= this.numberOfIntegerVariables) break;
             double val = xi- xk.get(i);
             dk.add(val);
             i++;
@@ -198,6 +196,17 @@ public class CLJ9  {
     }
 
     private ArrayList<Double> nextStep(ArrayList<Double> xk, double ak, ArrayList<Double> dk){
+        ArrayList<Double> step = new ArrayList<>();
+        int i = 0;
+        for(Double xi : xk){
+            double val = xi + ak*dk.get(i);
+            step.add(val);
+            i++;
+        }
+        return step;
+    }
+
+    private ArrayList<Double> nextStepArmijo(ArrayList<Double> xk, double ak, ArrayList<Double> dk){
         ArrayList<Double> step = new ArrayList<>();
         int i = 0;
         for(Double xi : xk){
@@ -213,9 +222,18 @@ public class CLJ9  {
         double ak = 1;
         double g = 0.01;
         double d = 0.5;
-
         double value = scalarProd(dk, grad);
-        while( f(nextStep(xk,ak,dk)) > f(xk) + g*ak*value){
+        double norm = FButils.Chebynorm(dk,this.numberOfIntegerVariables);
+        if(norm > 1) {
+            ak = 1d/norm;
+            if (f(xk) >= 1d && f(nextStepArmijo(xk, ak, dk)) <1d) {
+                System.out.println("_______________--------------------- TADAAAAAAAAN");
+                return ak;
+            }
+        }
+
+
+        while( f(nextStepArmijo(xk,ak,dk)) > f(xk) + g*ak*value){
             // System.out.println("Armijo-Control   "+f(nextStep(xk,ak,dk))+"  ?<= " +(f(xk) + g*ak*value+" ak "+ak));
             ak = ak*d;
         }
@@ -225,9 +243,16 @@ public class CLJ9  {
     private double scalarProd(ArrayList<Double> a, ArrayList<Double> b){
         double ret = 0;
         int i = 0;
-        for(Double ai : a){
-            ret = ret + ai*b.get(i);
-            i++;
+        if(a.size() > b.size()){
+            for (Double ai : b) {
+                ret = ret + ai * a.get(i);
+                i++;
+            }
+        }else {
+            for (Double ai : a) {
+                ret = ret + ai * b.get(i);
+                i++;
+            }
         }
         return ret;
     }
@@ -235,13 +260,16 @@ public class CLJ9  {
     private ArrayList<Double> function(ArrayList<Double> x){
         double ret = 1;
         ArrayList<Double> res = new ArrayList<>();
+        int i = 0;
         for(Double xi : x){
+            if(i >= this.numberOfIntegerVariables) break;
             ret = ret*(-1d-Math.cos(2*Math.PI*xi)) ;
+            i++;
         }
 
-        ret = Math.pow(-1d, this.numberOfIntegerVariables + 1)*Math.pow(2, -this.numberOfIntegerVariables)*ret;
-        double func = Math.exp(ret);
-        res.add(func);
+        ret = this.sign*ret;
+
+        res.add(ret);
         res.add(ret);
         return res;
     }
@@ -261,7 +289,7 @@ public class CLJ9  {
         for(ArrayList<Double> xh : this.awarex){
             if(FButils.Chebynorm(xh,x, this.numberOfIntegerVariables) <= 0.5){
                 //System.out.println("------------------------------------"+(2d - function(x).get(0)));
-                return 2d - function(x).get(0);
+                return  - function(x).get(0);
             }
         }
         return 0d;
@@ -277,10 +305,13 @@ public class CLJ9  {
     private ArrayList<Double> functiongrad(ArrayList<Double> x, boolean filled){
         ArrayList<Double> ret = new ArrayList<Double>();
         ArrayList<Double> singlevals = new ArrayList<>();
-        for(Double xi : x){
-            singlevals.add(-1d-Math.cos(2*Math.PI*xi)) ;
-        }
         int i = 0;
+        for(Double xi : x){
+            if(i >= this.numberOfIntegerVariables) break;
+            singlevals.add(-1d-Math.cos(2*Math.PI*xi)) ;
+            i++;
+        }
+        i = 0;
         ArrayList<Double> res = function(x);
         double func = res.get(0);
         double px = res.get(1);
@@ -288,9 +319,9 @@ public class CLJ9  {
         if(filled) sign = -1d;
 
         for(Double xi : x){
+            if(i >= this.numberOfIntegerVariables) break;
             double val = sign*2d*Math.PI*Math.sin(2*Math.PI*xi);
-            val = val*px/singlevals.get(0);
-            val = val*func;
+            val = val*px/singlevals.get(i);
             ret.add(val);
             i++;
         }
@@ -323,9 +354,11 @@ public class CLJ9  {
     public ArrayList<Object> solve() throws IloException{
         int maxiter = 0;
         this.cplex.setOut(null);
+        //this.cplex.setParam(IloCplex.Param.RootAlgorithm, IloCplex.Algorithm.Barrier);
 
         long start = System.currentTimeMillis();
         this.cplex.solve();
+        //System.out.println(this.model);
         ArrayList<Object> ret = new ArrayList<>();
         ArrayList<Double> x = this.getX();
         ArrayList<Double> xk = x;
@@ -340,65 +373,94 @@ public class CLJ9  {
             ret.add(0);
             ret.add(-start + end);
             ret.add(this.checkFeasibility(x));
-            ret.add( this.checkGap(x,lpobj));
+            ret.add( FButils.objVal(xk, this.c));
             return ret;
         }
 
+        boolean print = false;
 
 
         int count = 0;
         this.model.remove(this.objective);
-        while(!stop && maxiter <= 5) {
-//System.out.println("ITER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+maxiter);
+        while(!stop && maxiter <= 500) {
+            System.out.println("ITER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+maxiter);
             maxiter++;
+            //print(xk);
             this.setDistanceObjective( grad);
             this.cplex.solve();
+//            if((maxiter-1) % 100 == 0)
+            System.out.println(maxiter+") "+FButils.L2Norm(grad));
 
             double val = scalarProd(grad,x) - scalarProd(grad, xk);
-System.out.println(maxiter+") "+FButils.L2Norm(grad));
+
 //if(Math.abs(val) <= 1e-10 || f(xk) < 1d){
 
-            if( f(xk) < 1d){
+            if( f(xk) < 0d){
                 count++;
                 //System.out.println("Here I am "+ count+" "+val+" "+(Math.abs(val) <= 1e-10)+" "+f(xk));
                 ArrayList<Double> xh = this.getXTilde(xk);
-                feas = this.checkFeasibility(xh);
+
+
+                this.model.remove(this.distanceobj);
+                this.model.add(this.objective);
+                for(int i = 0; i < this.numberOfIntegerVariables; i++){
+                    double value = xh.get(i);
+                    this.x.get(i).setLB(value);
+                    this.x.get(i).setUB(value);
+                }
+
+
+
+                feas = this.cplex.solve();
                 if(!feas){
-                    //  System.out.println("                                    filling"+FButils.L2Norm(grad));
-                    //print(xh);
-                    //System.out.println("                    KK");
+                    if(print) System.out.println("                                    filling"+FButils.L2Norm(grad));
+                    if(print) print(xh);
+                    if(print) System.out.println("                    KK");
                     this.fill(xh);
-                    //print(grad);
-                    //System.out.println("                   KKGRADBEFOREFILLING<<");
+                    if(print) print(grad);
+                    if(print) System.out.println("                   KKGRADBEFOREFILLING<<");
                     grad = this.grad(xk);
-                    //print(grad);
-                    //System.out.println("                   KKGRADAFTER");
+                    if(print) print(grad);
+                    if(print) System.out.println("                   KKGRADAFTER");
+
                 }else{
+
+                    for(int i = this.numberOfIntegerVariables; i < this.n; i++){
+                        xh.add(this.cplex.getValue(this.x.get(i)));
+                    }
                     xk = xh;
                     stop = true;
                 }
+                for(int i = 0; i < this.numberOfIntegerVariables; i++){
 
+                    this.x.get(i).setLB(this.lower[i]);
+                    this.x.get(i).setUB(this.upper[i]);
+                }
+                this.model.remove(this.objective);
             }else{
-                //System.out.println("obj:" + this.cplex.getModel());
-                //System.out.println("------------------------xk");
-                //print(xk);
-                //System.out.println("------------------------");
+                if(print) System.out.println("obj:" + this.cplex.getModel());
+                if(print) System.out.println("------------------------xk");
+                if(print) print(xk);
+                if(print) System.out.println("------------------------");
 
                 x = this.getX();
-                //System.out.println("------------------------xx");
-                //print(x); System.out.println("------------------------(( "+stopCondition(x));
+                if(print) System.out.println("------------------------xx");
+                if(print) print(x);
+                if(print) System.out.println("------------------------(( "+stopCondition(x));
 
                 ArrayList<Double> dk = this.getDirection(x, xk);
-                //System.out.println("------------------------DDDD");
-                //print(dk);
-                //System.out.println("------------------------");
+                if(print) System.out.println("------------------------DDDD");
+                if(print) print(dk);
+                if(print) System.out.println("------------------------");
 
                 double ak = this.Armijo(xk, dk, grad);
                 xk = this.nextStep(xk, ak, dk);
-                //System.out.println("------------------------xk+1");
-//print(xk); System.out.println("------------------------<<");
+                if(print) System.out.println("------------------------xk+1");
+                if(print) print(xk);
+                if(print) System.out.println("------------------------<<");
 
                 stop = this.stopCondition(xk);
+                System.out.println("                "+checkFeasibility(xk));
                 if(!stop) grad = this.grad(xk);
                 //             print(grad);
                 //           System.out.println("                    KKGRADBEFORE  ak "+ak);
@@ -408,9 +470,10 @@ System.out.println(maxiter+") "+FButils.L2Norm(grad));
             this.model.remove(this.distanceobj);
         }
         long end = System.currentTimeMillis();
+        //print(xk);
         ret.add(xk);
         ret.add(stop);
-        ret.add(maxiter-1);
+        ret.add(maxiter);
         ret.add(-(start - end));
         ret.add(this.checkFeasibility(xk));
         ret.add( FButils.objVal(xk, this.c));
@@ -431,7 +494,7 @@ System.out.println(maxiter+") "+FButils.L2Norm(grad));
 
     private void print(ArrayList<Double> xk){
         for(Double xi : xk){
-            System.out.println("                       - "+xi);
+            System.out.println("                         "+xi);
         }
     }
 

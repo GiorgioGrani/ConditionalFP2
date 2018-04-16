@@ -13,6 +13,7 @@ public class BenchMark  {
     private double [] b;
     private double [] lower;
     private double [] upper;
+    private int [] directions;
     private int numberOfIntegerVariables;
     private int n ;
     private static final double eps = 1e-6;
@@ -24,7 +25,7 @@ public class BenchMark  {
     private IloAddable distanceobj;
     private ArrayList< IloNumVar> x;
 
-    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables) throws IloException{
+    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables, int [] directions) throws IloException{
         if( c != null) this.c = c;
         else return;
         this.n = this.c.length;
@@ -47,6 +48,7 @@ public class BenchMark  {
 
         this.numberOfIntegerVariables = numberOfIntegerVariables;
 
+        this.directions = directions;
         this.cplex = new IloCplex();
         this.model = this.cplex.getModel();
 
@@ -57,12 +59,20 @@ public class BenchMark  {
 
     private void createVariables() throws IloException {
         this.x = new ArrayList<>();
-        for ( int i = 0 ; i< this.n; i++){
+        for ( int i = 0 ; i< this.numberOfIntegerVariables; i++){
             String varname = "x" + i;
+            int low = (int) Math.floor(this.lower[i] + 0.5);
+            int up = (int) Math.floor(this.upper[i] + 0.5);
+            //IloNumVar xi = this.cplex.intVar(low, up, varname);
+            IloNumVar xi = this.cplex.intVar(low, Math.max(low, up), varname);
+            this.x.add( xi);
+        }
+        for ( int i = this.numberOfIntegerVariables ; i< this.n; i++){
+            String varname = "y" + i;
             //int low = (int) Math.floor(this.lower[i] + 0.5);
             //int up = (int) Math.floor(this.upper[i] + 0.5);
             //IloNumVar xi = this.cplex.intVar(low, up, varname);
-            IloNumVar xi = this.cplex.boolVar(varname);
+            IloNumVar xi = this.cplex.numVar(lower[i], upper[i], varname);
             this.x.add( xi);
         }
     }
@@ -93,7 +103,13 @@ public class BenchMark  {
                 expr.addTerm( A[i][j], xi);
                 j++;
             }
-            this.cplex.addGe(expr, b[i]);
+            if(directions[i] > 0) {
+                this.cplex.addGe(expr, b[i]);
+            }else if( directions[i] < 0){
+                this.cplex.addLe(expr, b[i]);
+            }else{
+                this.cplex.addEq(expr, b[i]);
+            }
         }
     }
 
@@ -111,7 +127,7 @@ public class BenchMark  {
 
     private ArrayList<Double> getX() throws IloException{
         ArrayList<Double> x = new ArrayList<>();
-        for(int i = 0; i < this.numberOfIntegerVariables; i++){
+        for(int i = 0; i < this.n; i++){
             Double d = this.cplex.getValue(this.x.get(i));
             x.add(d);
         }
@@ -128,30 +144,32 @@ public class BenchMark  {
                 double xi = x.get(j);
                 val += xi*A[i][j];
             }
-            if (val < b[i] - eps) return false;
+
+            if(directions[i] > 0) {
+                if (val < b[i] - eps) return false;
+            }else if( directions[i] < 0){
+                if (val > b[i] + eps) return false;
+            }else{
+                if (val < b[i] - eps  || val > b[i] + eps  ) return false;
+            }
         }
         return true;
     }
 
-    private double checkGap(ArrayList<Double> x, double lpobj){
-        double val = 0;
-        for ( int i = 0 ; i < this.c.length; i++){
-            val += c[i]*x.get(i);
-        }
-        return - lpobj + val;
-    }
+
 
     public ArrayList<Object> solve() throws IloException{
-        int maxiter = 0;
         this.cplex.setOut(null);
-        this.cplex.setParam(IloCplex.DoubleParam.EpGap, 0d);
+        //this.cplex.setParam(IloCplex.DoubleParam.EpGap, 0d);
+        //this.cplex.setParam(IloCplex.Param.MIP.Strategy.FPHeur, 1);
+        this.cplex.setParam(IloCplex.Param.MIP.Limits.Solutions, 2);
 
         long start = System.currentTimeMillis();
-        this.cplex.solve();
         //System.out.println(this.model);
+        this.cplex.solve();
+        //
         ArrayList<Object> ret = new ArrayList<>();
         ArrayList<Double> x = this.getX();
-        double lpobj = this.cplex.getObjValue();
             long end = System.currentTimeMillis();
             ret.add(x);
             ret.add(true);

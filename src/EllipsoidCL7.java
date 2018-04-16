@@ -7,7 +7,7 @@ import java.util.Map;
 
 import java.util.ArrayList;
 
-public class CLJ7  {
+public class EllipsoidCL7  {
     private double[] c;
     private double[][] A;
     private double [] b;
@@ -137,7 +137,7 @@ public class CLJ7  {
         if(maxabs < 1 && maxabs > 0){
             for(Double d : grad0){
                 grad.add(d/maxabs);
-               //System.out.println("mod grad"+(d/maxabs));
+                //System.out.println("mod grad"+(d/maxabs));
             }
         }else{
             grad = grad0;
@@ -341,9 +341,9 @@ public class CLJ7  {
             double val = sign*Math.PI*Math.sin(2*Math.PI*xi);
             //System.out.print(px+"__"+val);
             if(Math.abs(singlevals.get(i)) >= 1e-20){
-            val = val*px/singlevals.get(i);
+                val = val*px/singlevals.get(i);
 
-            val = val*func;
+                val = val*func;
             }else{
                 val = 0d;
             }
@@ -408,8 +408,8 @@ public class CLJ7  {
 
         int count = 0;
         this.model.remove(this.objective);
-        while(!stop && maxiter <= 10) {
-System.out.println("ITER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+maxiter);
+        while(!stop && maxiter <= 500) {
+            System.out.println("ITER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+maxiter);
             maxiter++;
             //print(xk);
             //System.out.println("BOIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
@@ -423,7 +423,7 @@ System.out.println("ITER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+maxiter);
             //double val = scalarProd(grad,x) - scalarProd(grad, xk);
 
 //if(Math.abs(val) <= 1e-10 || f(xk) < 1d){
-System.out.println(f(xk)+"  "+(f(xk)<1d));
+            System.out.println(f(xk)+"  "+(f(xk)<1d));
             if( f(xk) < 1d){
                 count++;
                 //System.out.println("Here I am "+ count+" "+val+" "+(Math.abs(val) <= 1e-10)+" "+f(xk));
@@ -495,9 +495,9 @@ System.out.println(f(xk)+"  "+(f(xk)<1d));
 
                     grad = this.grad(xk);
                 }
-   //             print(grad);
-     //           System.out.println("                    KKGRADBEFORE  ak "+ak);
-       //         System.out.println(maxiter+">> "+(-val)+" <= "+1e-10+"     "+(Math.abs(val) <= 1e-10)+"  f "+f(xk));
+                //             print(grad);
+                //           System.out.println("                    KKGRADBEFORE  ak "+ak);
+                //         System.out.println(maxiter+">> "+(-val)+" <= "+1e-10+"     "+(Math.abs(val) <= 1e-10)+"  f "+f(xk));
             }
             //System.out.println(maxiter+") "+val +"    "+FButils.integralityGap(IntegralityGapTypes.L2Norm,this.numberOfIntegerVariables,xk));
             this.model.remove(this.distanceobj);
