@@ -1,5 +1,8 @@
+import com.csvreader.CsvWriter;
 import ilog.concert.IloException;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import  java.util.Scanner;
 import  java.io.File;
@@ -29,7 +32,7 @@ public class main {
 //            }
 //        }
 
-        run( "/home/giorgiograni/Downloads/miplib2010-benchmark/timtab1.mps");
+        run( aaa[0], aaa[1]);
     }
 
     public static ArrayList<Object> readMPS(String mps) throws FileNotFoundException{
@@ -371,7 +374,7 @@ public class main {
         else return 1;
     }
 
-    public static void run( String mps){
+    public static void run( String mps, String output){
 
         ArrayList<Object> param = new ArrayList<>();
         try {
@@ -399,56 +402,55 @@ public class main {
         ArrayList<Double> xb = new ArrayList<>();
         ArrayList<Double> xc = new ArrayList<>();
 
-        boolean [] code = {true,false,false,false,false,true,false,false,false , false, false};
+        boolean [] code = {true,true,true,true,false,true,true,true,false , false, false};
         if(code[0]){
-            EllipsoidFP fp = new EllipsoidFP();
+            BasicVersion fp = new BasicVersion();
             try {
                 fp.set(objectives, matrixA, b, lower, upper, nsize, directions);
                 ArrayList<Object> results = fp.solve();
-                main.useResults(results, nsize, "Simple          ");
+                main.useResults(results, nsize, "Simple", output);
             }catch(IloException e){
                 e.printStackTrace();
             }
         }
         if(code[1]) {
-            LacosteJulien lj = new LacosteJulien();
+            ReinforcementFP fp = new ReinforcementFP();
             try {
-                lj.set(objectives, matrixA, b, lower, upper, nsize);
-                ArrayList<Object> results = lj.solve();
-                main.useResults(results, nsize, "LacosteJulien          ");
-            } catch (IloException e) {
+                fp.set(objectives, matrixA, b, lower, upper, nsize, directions);
+                ArrayList<Object> results = fp.solve();
+                main.useResults(results, nsize, "Reinforcement", output);
+            }catch(IloException e){
                 e.printStackTrace();
             }
         }
-        if (code[2]) {
-            LJ2 lj2 = new LJ2();
+        if(code[2]) {
+            AggressiveRFP fp = new AggressiveRFP();
             try {
-                lj2.set(objectives, matrixA, b, lower, upper, nsize);
-                ArrayList<Object> results = lj2.solve();
-                main.useResults(results, nsize, "OriginalLJ          ");
-            } catch (IloException e) {
+                fp.set(objectives, matrixA, b, lower, upper, nsize, directions);
+                ArrayList<Object> results = fp.solve();
+                main.useResults(results, nsize, "Aggressive", output);
+            }catch(IloException e){
                 e.printStackTrace();
             }
         }
 
         if(code[3]) {
 
+            CDFP fp = new CDFP();
             try {
-                LJ3FS lj3 = new LJ3FS();
-                lj3.set(objectives, matrixA, b, lower, upper, nsize);
-                ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "NoArmijoLJ          ");
-            } catch (IloException e) {
+                fp.set(objectives, matrixA, b, lower, upper, nsize, directions);
+                ArrayList<Object> results = fp.solve();
+                main.useResults(results, nsize, "CDFP", output);
+            }catch(IloException e){
                 e.printStackTrace();
             }
-            System.gc();
         }
         if(code[4]) {
             try {
                 LJ4S lj4 = new LJ4S();
                 lj4.set(objectives, matrixA, b, lower, upper, nsize);
                 ArrayList<Object> results = lj4.solve();
-                main.useResults(results, nsize, "Sinusoidal          ");
+                //main.useResults(results, nsize, "Sinusoidal          ");
             } catch (IloException e) {
                 e.printStackTrace();
             }
@@ -456,9 +458,9 @@ public class main {
         if(code[5]) {
             try {
                 BenchMark lj3 = new BenchMark();
-                lj3.set(objectives, matrixA, b, lower, upper, nsize, directions);
+                lj3.set(objectives, matrixA, b, lower, upper, nsize, directions, 2);
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "BenchMark          ");
+                main.useResults(results, nsize, "BenchMark2", output);
                 xb = (ArrayList<Double>) results.get(0);
             } catch (IloException e) {
                 e.printStackTrace();
@@ -466,32 +468,32 @@ public class main {
         }
         if(code[6]) {
             try {
-                FilledLJ5 lj3 = new FilledLJ5();
-                lj3.set(objectives, matrixA, b, lower, upper, nsize);
+                BenchMark lj3 = new BenchMark();
+                lj3.set(objectives, matrixA, b, lower, upper, nsize, directions,3 );
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "Filled          ");
+                main.useResults(results, nsize, "BenchMark3", output);
+                xb = (ArrayList<Double>) results.get(0);
             } catch (IloException e) {
                 e.printStackTrace();
             }
-
         }
         if(code[7]) {
             try {
-                ConditionalLJ6 lj3 = new ConditionalLJ6();
-                lj3.set(objectives, matrixA, b, lower, upper, nsize);
+                BenchMark lj3 = new BenchMark();
+                lj3.set(objectives, matrixA, b, lower, upper, nsize, directions, 4);
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "Conditional          ");
+                main.useResults(results, nsize, "BenchMark4", output);
+                xb = (ArrayList<Double>) results.get(0);
             } catch (IloException e) {
                 e.printStackTrace();
             }
-
         }
         if(code[8]) {
             try {
                 CLJ7 lj3 = new CLJ7();
                 lj3.set(objectives, matrixA, b, lower, upper, nsize, directions);
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "CLJ7          ");
+                //main.useResults(results, nsize, "CLJ7          ");
                 xc = (ArrayList<Double>) results.get(0);
             } catch (IloException e) {
                 e.printStackTrace();
@@ -503,7 +505,7 @@ public class main {
                 CLJ8 lj3 = new CLJ8();
                 lj3.set(objectives, matrixA, b, lower, upper, nsize);
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "CLJ8          ");
+                //main.useResults(results, nsize, "CLJ8          ");
             } catch (IloException e) {
                 e.printStackTrace();
             }
@@ -514,7 +516,7 @@ public class main {
                 CLJ9 lj3 = new CLJ9();
                 lj3.set(objectives, matrixA, b, lower, upper, nsize, directions);
                 ArrayList<Object> results = lj3.solve();
-                main.useResults(results, nsize, "CLJ8          ");
+                //main.useResults(results, nsize, "CLJ8          ");
             } catch (IloException e) {
                 e.printStackTrace();
             }
@@ -601,15 +603,52 @@ public class main {
         return ret;
     }
 
-    private static void useResults(ArrayList<Object> results, int nsize, String algorithm_name) {
+    private static void useResults(ArrayList<Object> results, int nsize, String algorithm_name, String output) {
         ArrayList<Double> x = (ArrayList<Double>) results.get(0);
+        double [] ret = new double [6];
         double ig = FButils.integralityGap(IntegralityGapTypes.L2Norm, nsize, x);
+        ret[0] = ig;
         boolean stop = (boolean) results.get(1);
+        ret[1] = (stop? 0d : 1d);
         int iter = (int) results.get(2);
+        ret[2] = iter;
         long time = (long) results.get(3);
+        ret[3] = time;
         boolean check = (boolean) results.get(4);
+        ret[4] = (check? 0d : 1d);
         double objgap = (double) results.get(5);
-        System.out.println(algorithm_name+"  IntegralityGap: " + ig + "  Stop: " + stop + "  Iter: " + iter + "  Time (sec): " + (time / 1000) + "   Check:" + check + "  ObjGap: " + objgap);
+        ret[5] = objgap;
+        System.out.println(algorithm_name+"  IntegralityGap: " + ig + "  Stop: " + stop + "  Iter: " + iter + "  Time (msec): " + (time ) + "   Check:" + check + "  ObjGap: " + objgap);
+
+
+        try {
+            boolean verify = false;
+            if (!new File(output).exists()) {
+                verify = true;
+            }
+            FileWriter file = new FileWriter(output, !verify);
+            CsvWriter outputWriterkh = new CsvWriter(file, ',');
+            if (verify) {
+                outputWriterkh.write("Name");
+
+                outputWriterkh.write("Integrality_Gap");
+                outputWriterkh.write("Stop_Condition");
+                outputWriterkh.write("Iterations");
+                outputWriterkh.write("Time(msec)");
+                outputWriterkh.write("Check_Feasibility");
+                outputWriterkh.write("Objvalue");
+                outputWriterkh.endRecord();
+            }
+
+            outputWriterkh.write(algorithm_name);
+            for (int j = 0; j < ret.length; j++) {
+                outputWriterkh.write(ret[j] + "");
+            }
+            outputWriterkh.endRecord();
+            outputWriterkh.close();
+        }catch(IOException e){
+            e.printStackTrace();
+        }
 
     }
 

@@ -25,7 +25,9 @@ public class BenchMark  {
     private IloAddable distanceobj;
     private ArrayList< IloNumVar> x;
 
-    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables, int [] directions) throws IloException{
+    private int tolerance;
+
+    public void set(double[] c, double[][] A , double [] b, double [] lower , double [] upper, int numberOfIntegerVariables, int [] directions, int tolerance) throws IloException{
         if( c != null) this.c = c;
         else return;
         this.n = this.c.length;
@@ -55,6 +57,7 @@ public class BenchMark  {
         this.createVariables();
         this.setObjective();
         this.setConstraints();
+        this.tolerance = tolerance;
     }
 
     private void createVariables() throws IloException {
@@ -162,7 +165,7 @@ public class BenchMark  {
         this.cplex.setOut(null);
         //this.cplex.setParam(IloCplex.DoubleParam.EpGap, 0d);
         //this.cplex.setParam(IloCplex.Param.MIP.Strategy.FPHeur, 1);
-        this.cplex.setParam(IloCplex.Param.MIP.Limits.Solutions, 2);
+        this.cplex.setParam(IloCplex.Param.MIP.Limits.Solutions, this.tolerance);
 
         long start = System.currentTimeMillis();
         //System.out.println(this.model);

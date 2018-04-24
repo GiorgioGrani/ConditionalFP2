@@ -2,7 +2,18 @@ import java.util.ArrayList;
 
 public class FButils {
     public static final double eps = 1e-6;
+    public static final double RANDOMTOLERANCE = 1e-6;
     public static double round(double d){
+        return Math.floor( d + 0.5);
+    }
+    public static double randomRound(double d, double c){
+        if(Math.abs(d - 0.5) <= RANDOMTOLERANCE){
+            double p = Math.random();
+            if(p > 0.5 && c>= 0) return 1d;
+            if(p <= 0.5 && c>= 0) return 0d;
+            if(p >= 0.5 ) return 1d;
+            if(p < 0.5) return 0d;
+        }
         return Math.floor( d + 0.5);
     }
 
