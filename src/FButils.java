@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Random;
 
 public class FButils {
     public static final double eps = 1e-6;
@@ -9,6 +10,16 @@ public class FButils {
     public static double randomRound(double d, double c){
         if(Math.abs(d - 0.5) <= RANDOMTOLERANCE){
             double p = Math.random();
+            if(p > 0.5 && c>= 0) return 1d;
+            if(p <= 0.5 && c>= 0) return 0d;
+            if(p >= 0.5 ) return 1d;
+            if(p < 0.5) return 0d;
+        }
+        return Math.floor( d + 0.5);
+    }
+    public static double randomRound(double d, double c, Random rand){
+        if(Math.abs(d - 0.5) <= RANDOMTOLERANCE){
+            double p = rand.nextDouble();
             if(p > 0.5 && c>= 0) return 1d;
             if(p <= 0.5 && c>= 0) return 0d;
             if(p >= 0.5 ) return 1d;

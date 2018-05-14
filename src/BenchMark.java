@@ -164,7 +164,8 @@ public class BenchMark  {
     public ArrayList<Object> solve() throws IloException{
         this.cplex.setOut(null);
         //this.cplex.setParam(IloCplex.DoubleParam.EpGap, 0d);
-        //this.cplex.setParam(IloCplex.Param.MIP.Strategy.FPHeur, 1);
+        this.cplex.setParam(IloCplex.Param.MIP.Strategy.FPHeur, 1);
+        //this.cplex.setParam(IloCplex.Param.Preprocessing.Presolve, false);
         this.cplex.setParam(IloCplex.Param.MIP.Limits.Solutions, this.tolerance);
 
         long start = System.currentTimeMillis();
