@@ -183,9 +183,9 @@ public class DADUSHT  {
         }
 
         double nmax = 1d;
-//        for(double d : norms.values()){
-//            if( nmax < d) nmax = d;
-//        }
+        for(double d : norms.values()){
+            if( nmax < d) nmax = d;
+        }
 
         for(String con : this.constraints){
             for(String vn : this.A.get(con).keySet()){
@@ -339,27 +339,38 @@ public class DADUSHT  {
             double x = binaries.get(ind);
             //System.out.println(x+" <-"+ind);
             double val = weights.get(ind);
-
+boolean check = true;
             if(Math.abs(val) > 0) {
-                double d1 = 2d * x / val;
+                double d1 = -2d * x / val;
                 double d2 = (2d - 2d * x) / val;
 
-                if (dm > d1 ) {
-                    dm = d1;
-                }
-                if (dp > d2) {
-                    dp = d2;
-                }
+               for(String s : A){
+                   double y = binaries.get(s);
+                   System.out.println(ind+") d1 "+d1+" d2 " + d2+" x "+x +" y "+
+                           y+" dd1 "+Math.abs(2d*y - 1d + d1*weights.get(s))+
+                           " dd2 "+Math.abs(2d*y - 1d + d2*weights.get(s)));
+                   if( Math.abs(2d*y - 1d + d1*weights.get(s)) >= (1 + eps) ||
+                           Math.abs(2d*y - 1d + d2*weights.get(s)) >= (1 + eps)){
+                       check = false;
+                       break;
+                   }
+               }
+               if (check){
+                   double [] ret = new double [2];
+                   ret[0] = d1*0.55;
+                   ret[1] = d2*0.55;
+                   return ret;
+               }
             }
         }
 
         double [] ret = new double [2];
-        ret[0] = -dm;
-        ret[1] = dp;
+//        ret[0] = -dm;
+//        ret[1] = dp;
         //Theoretical correct values
-        //ret[0] = -dm/2d;
-        //ret[1] = dp/2d;
-
+        ret[0] = -dm/2d;
+        ret[1] = dp/2d;
+System.out.println("ERROR FOUND");
         return ret;
     }
 
