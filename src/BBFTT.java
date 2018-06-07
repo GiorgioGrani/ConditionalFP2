@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.Collections;
 import java.util.TreeMap;
 
-public class BBFPT  {private ArrayList<String> binaries = new ArrayList<>();
+public class BBFTT  {private ArrayList<String> binaries = new ArrayList<>();
     private ArrayList<String> generals = new ArrayList<>();
     private ArrayList<String> continuous = new ArrayList<>();
     private TreeMap<String, IloNumVar> varbin = new TreeMap<String, IloNumVar>();

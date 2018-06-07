@@ -371,7 +371,7 @@ if(Math.abs(val) > 0) {
                 }
                 ind ++;
             }
-            sub.addEq(expr, rif[i]);
+            sub.addGe(expr, rif[i]-this.eps);sub.addLe(expr, rif[i]+this.eps);
         }
 
 //        int ind = 0;
@@ -398,6 +398,7 @@ if(Math.abs(val) > 0) {
         }
         sub.addMinimize(obj);
         sub.solve();
+        System.out.println(sub.getModel());
 
         double []  ret = new double [n];
         int i = 0;
@@ -481,7 +482,7 @@ if(Math.abs(val) > 0) {
 
         ArrayList<Integer> A = setA(xk);
 
-        while(!stop && maxiter < 0){
+        while(!stop && maxiter < 100){
             System.out.println(maxiter);
             maxiter++;
             double [] vnt = GSwalk(A);
@@ -533,6 +534,7 @@ if(Math.abs(val) > 0) {
 //            }
 //            this.model.remove(this.objective);
 //        }
+
 
 
 

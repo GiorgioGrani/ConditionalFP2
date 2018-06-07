@@ -64,6 +64,18 @@ public class BBFP  {
         this.setObjective();
         this.setConstraints();
     }
+    public void set(String mod) throws IloException {
+
+        this.cplex = new IloCplex();
+
+        this.model = this.cplex.getModel();
+
+        this.sign = Math.pow(-1d, this.numberOfIntegerVariables + 1);//*Math.pow(2,-this.numberOfIntegerVariables);
+
+        this.createVariables();
+        this.setObjective();
+        this.setConstraints();
+    }
 
     private double[] fill(boolean up){
         double [] d = new double [this.n];

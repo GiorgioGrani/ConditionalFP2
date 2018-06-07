@@ -1,0 +1,35 @@
+else if (rfitOp(compare)){ //todo primo cambio prima cera slider invc di compre
+
+                      if(compare.equals("<=")){
+                          directions.put(name, -1);
+                      }else if (compare.equals(">=")){
+                          directions.put(name, 1);
+                      }else if (compare.equals("=")){
+                          directions.put( name, 0);
+                      }
+
+                      String see = scan.next();
+                      double track = Double.parseDouble(see);
+                      b.put(name, track);
+
+
+                      System.out.println(compare+track+"  "+see);
+                      name = scan.next();
+
+                      break loop;
+                  }
+
+
+                  else if(sel0[0] == 'b' || sel[0] == 'i') {
+                                      int i = find( binaries, slider, "b");
+                                      int j = find( generals, compare,"i");
+
+
+
+                                      if(cq.get(binaries.get(i)) == null){
+                                          TreeMap<String, Double> sub = new TreeMap<>();
+                                          cq.put(binaries.get(i), sub);
+                                      }
+
+                                      cq.get(binaries.get(i)).put(generals.get(j), val);
+                                  }
