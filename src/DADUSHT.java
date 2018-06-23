@@ -73,7 +73,7 @@ public class DADUSHT  {
         this.sign = Math.pow(-1d, this.nbin + nint + 1);//*Math.pow(2,-this.numberOfIntegerVariables);
 
         this.createVariables();
-        this.setObjective();
+        //this.setObjective();
         this.setConstraints();
         //System.out.println((model));
     }
@@ -158,19 +158,27 @@ public class DADUSHT  {
     private void setConstraints() throws IloException{
         if(this.A == null || this.b == null) return;
         TreeMap<String, Double> norms = new TreeMap<>();
+        TreeMap<String, Double> absmax = new TreeMap<>();
         for(String con : constraints){
             double norm = 0d;
             IloLQNumExpr constraint = this.cplex.lqNumExpr();
 
 
             if(this.A.get(con) != null && this.A.get(con).size() >= 1) {
+                double localvar = 0d;
 
                 for(String xi : this.A.get(con).keySet()){
                     if(this.vargen.get(xi) != null)   constraint.addTerm(this.A.get(con).get(xi), this.vargen.get(xi));
                     else if(this.varbin.get(xi) != null) constraint.addTerm(this.A.get(con).get(xi), this.varbin.get(xi));
                     else if(this.varcon.get(xi) != null) constraint.addTerm(this.A.get(con).get(xi), this.varcon.get(xi));
                     norm += Math.pow(this.A.get(con).get(xi), 2);
+                    if(Math.abs(directions.get(con)) <= 0.1){
+                        if( Math.abs(this.A.get(con).get(xi)) >= eps){
+                            localvar = Math.abs(this.A.get(con).get(xi));
+                        }
+                    }
                 }
+                absmax.put(con, localvar);
             }
             //todo ricordati che hai rimosso la parte quadratica
 
@@ -195,7 +203,11 @@ public class DADUSHT  {
                 }else if( directions.get(con) < 0){
                     V.get(vn).put(con,A.get(con).get(vn)/(b.get(con)*nmax));
                 }else{
-                    V.get(vn).put(con,A.get(con).get(vn)/(b.get(con)*nmax));
+                    String conp = con + "+";
+                    String conm = con + "-";
+                    //System.out.println(absmax.get(con));
+                    V.get(vn).put(conp,A.get(con).get(vn)/((b.get(con)+absmax.get(con))*nmax));
+                    V.get(vn).put(conm,-A.get(con).get(vn)/((b.get(con)-absmax.get(con))*nmax));
                 }
             }
         }
@@ -293,7 +305,7 @@ public class DADUSHT  {
 
             if( directions.get(con) <= -0.5 && (this.b.get(con) - conval) <= -1e-9) return false;
             else if( directions.get(con) >= 0.5 && (this.b.get(con) - conval) >= 1e-9) return false;
-            else if( Math.abs(directions.get(con)) <= 0.5 &&  Math.abs(this.b.get(con) - conval) >= 1e-9)  return false;
+            else if( Math.abs(directions.get(con)) <= 0.1 &&  Math.abs(this.b.get(con) - conval) >= 1e-9)  return false;
         }
         return true;
     }
@@ -318,12 +330,12 @@ public class DADUSHT  {
 
     private ArrayList<String> setA( TreeMap<String, Double> binaries){
         ArrayList<String> ret = new ArrayList<>();
-        System.out.println("--------------- starterurururur");
+        //System.out.println("--------------- starterurururur");
         //System.out.println();
         for(String d : binaries.keySet()){
             //System.out.println("--> " + d);
             if(Math.abs(Math.round(binaries.get(d))-binaries.get(d)) > 0){
-                System.out.println("--------------- "+d);
+                //System.out.println("--------------- "+d);
                 ret.add(d);
             }
         }
@@ -341,7 +353,7 @@ public class DADUSHT  {
             double val = weights.get(ind);
 boolean check = true;
             if(Math.abs(val) > 0) {
-                double d1 = -2d * x / val;
+                double d1 = -2d *(1d + x) / val;
                 double d2 = (2d - 2d * x) / val;
 
                for(String s : A){
@@ -349,16 +361,16 @@ boolean check = true;
                    System.out.println(ind+") d1 "+d1+" d2 " + d2+" x "+x +" y "+
                            y+" dd1 "+Math.abs(2d*y - 1d + d1*weights.get(s))+
                            " dd2 "+Math.abs(2d*y - 1d + d2*weights.get(s)));
-                   if( Math.abs(2d*y - 1d + d1*weights.get(s)) >= (1 + eps) ||
-                           Math.abs(2d*y - 1d + d2*weights.get(s)) >= (1 + eps)){
+                   if( Math.abs(y + d1*weights.get(s)/2d) >= (1 + eps) ||
+                           Math.abs(y + d2*weights.get(s)/2d) >= (1 + eps)){
                        check = false;
                        break;
                    }
                }
                if (check){
                    double [] ret = new double [2];
-                   ret[0] = d1*0.55;
-                   ret[1] = d2*0.55;
+                   ret[0] = d1/2d;
+                   ret[1] = d2/2d;
                    return ret;
                }
             }
@@ -400,8 +412,8 @@ private TreeMap<String, Double> diff(TreeMap<String, Double> vb,  TreeMap<String
 
 
         IloCplex sub = new IloCplex();
-        sub.setOut(null);
-        //sub.setParam(IloCplex.Param.Preprocessing.Presolve, false);
+        //sub.setOut();
+        //sub.setParam(IloCplex.Param, false);
         TreeMap<String, IloNumVar> vars = new TreeMap<>();
         for(String s : A){
             if(! s.equalsIgnoreCase(A.get(n-1))) vars.put(s, sub.numVar(-(Double.MAX_VALUE-1), Double.MAX_VALUE));
@@ -422,13 +434,15 @@ private TreeMap<String, Double> diff(TreeMap<String, Double> vb,  TreeMap<String
         }
 
 
-        IloLinearNumExpr obj = sub.linearNumExpr();
-        for(IloNumVar v : vars.values()){
-            obj.addTerm(0d, v); //todo puo' essere cambiato
-        }
-        sub.addMinimize(obj);
-        sub.solve();
+        //IloLinearNumExpr obj = sub.linearNumExpr();
+       // for(IloNumVar v : vars.values()){
+       //     obj.addTerm(0d, v); //todo puo' essere cambiato
+       // }
+        //sub.addMinimize(obj);
+        System.out.println("ci piantiamo su solve? ma ti pare");
 
+        sub.solve();
+        System.out.println("ci piantiamo su solve? ma ti pare");
         TreeMap<String, Double>  ret = new TreeMap<>();
 
         for(String s : vars.keySet()){
@@ -484,6 +498,7 @@ private TreeMap<String, Double> diff(TreeMap<String, Double> vb,  TreeMap<String
     }
 
     public ArrayList<Object> solve() throws IloException{
+        System.out.println(1);
         int maxiter = 0;
         this.cplex.setOut(null);
         this.cplex.setParam(IloCplex.Param.RootAlgorithm, IloCplex.Algorithm.Barrier);
@@ -499,9 +514,29 @@ private TreeMap<String, Double> diff(TreeMap<String, Double> vb,  TreeMap<String
 //        for(String s : x.keySet()){
 //            x.replace(s,0.5);
 //        }
-     //   print(xk);
+        //   print(xk);
 
         boolean stop = this.stopCondition(xk);
+        if(stop){
+            long end = System.currentTimeMillis();
+            ret.add(x);
+            ret.add(stop);
+            ret.add(0);
+            ret.add(-start + end);
+            ret.add(this.checkFeasibility(x, xc));
+            ret.add( FButils.objVal(xk, this.c));
+            return ret;
+        }
+
+System.out.println(2);
+        this.setObjective();
+        solve = this.cplex.solve();
+        res = this.getX();
+        x =( TreeMap<String, Double>) res.get(0);
+        xc = ( TreeMap<String, Double>) res.get(1);
+        xk = x;
+
+        stop = this.stopCondition(xk);
         if(stop){
             long end = System.currentTimeMillis();
             ret.add(x);
@@ -519,13 +554,14 @@ private TreeMap<String, Double> diff(TreeMap<String, Double> vb,  TreeMap<String
         this.model.remove(this.objective);
 //print(xk);
         ArrayList<String> A = setA(xk);
-
+System.out.println("let's the p[arty begin");
         while(!stop && maxiter < 100){
-            //System.out.println(maxiter);
+            System.out.println(maxiter);
             maxiter++;
             TreeMap<String, Double> vnt = GSwalk(A);
             TreeMap<String, Double> weights;
             weights = solveSystem(vnt,A);
+            System.out.println("solvesys");
 //            for(String s : weights.keySet()) System.out.print(s+" "+weights.get(s)+", ");
 //            System.out.println();
             double [] delta ;

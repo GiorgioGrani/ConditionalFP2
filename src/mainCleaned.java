@@ -42,6 +42,17 @@ public class mainCleaned {
 
         if (type.equalsIgnoreCase("mps")) {
             boolean[] code = {true, true, true, true, false, true, true, true, false, false, false};
+            if (code[2]) {
+                DADUSHT fp = new DADUSHT();
+                try {
+                    fp.set(param);
+                    ArrayList<Object> results = fp.solve();
+                    main.useResults(results, "DADUSHT ", output, name);
+                } catch (IloException e) {
+                    e.printStackTrace();
+                }
+            }
+
             if (code[0]) {
                 BenchMarkLP fp = new BenchMarkLP();
                 try {
@@ -74,16 +85,6 @@ public class mainCleaned {
                     e.printStackTrace();
                 }
                 System.gc();
-            }
-            if (code[2]) {
-                DADUSHT fp = new DADUSHT();
-                try {
-                    fp.set(param);
-                    ArrayList<Object> results = fp.solve();
-                    main.useResults(results, "DADUSHT ", output, name);
-                } catch (IloException e) {
-                    e.printStackTrace();
-                }
             }
 
 

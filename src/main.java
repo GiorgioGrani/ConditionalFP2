@@ -1322,19 +1322,24 @@ if(directiond.equalsIgnoreCase("N")) objname = conname;
             e.printStackTrace();
             return;
         }
-        int nsize = -1;
 
-        double[] objectives = new double [0];
-        double[][] matrixA = new double [0][0];
-        double[] b =  new double [0];
-        double[] lower =  new double [0];
-        double[] upper = new double [0];
-        int[] directions = new int [0];
         System.out.println("matrices stored");
 
 
         if(type.equalsIgnoreCase("mps")) {
             boolean [] code = {true,         true,   true,      true,false,true,true,true,false , false, false};
+
+            if(code[2]){
+                DADUSHT fp = new DADUSHT();
+                try {
+                    fp.set(param);
+                    ArrayList<Object> results = fp.solve();
+                    main.useResults(results, "DADUSHT ", output, name);
+                }catch(IloException e){
+                    e.printStackTrace();
+                }
+            }
+
             if(code[0]){
                 BenchMarkLP fp = new BenchMarkLP();
                 try {
@@ -1367,15 +1372,6 @@ if(directiond.equalsIgnoreCase("N")) objname = conname;
                     e.printStackTrace();
                 }
                 System.gc();
-            }if(code[2]){
-                DADUSHT fp = new DADUSHT();
-                try {
-                    fp.set(param);
-                    ArrayList<Object> results = fp.solve();
-                    main.useResults(results, "DADUSHT ", output, name);
-                }catch(IloException e){
-                    e.printStackTrace();
-                }
             }
 
 //            nsize = (int) param.get(0);
